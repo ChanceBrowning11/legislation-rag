@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "legislation-rag"
+version = "0.1.0"
+description = "A RAG application for Minnesota legislative bills with plain-English summary augmentation."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Chance Browning" }
+]
+license = { text = "MIT" }
+dependencies = [
+  "pydantic>=2.7",
+  "python-dotenv>=1.0",
+  "pyyaml>=6.0",
+  "pypdf>=4.2",
+  "pandas>=2.2",
+  "numpy>=1.26",
+  "tqdm>=4.66",
+  "langchain>=0.3",
+  "langchain-community>=0.3",
+  "langchain-openai>=0.2",
+  "chromadb>=0.5",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+  "black>=24.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]

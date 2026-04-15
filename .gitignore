@@ -1,0 +1,62 @@
+# If data gets too big, remove comment on the next line
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.python-version
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Data artifacts
+data/processed/
+data/evaluation/results/
+
+# Vector DB / indexes
+vectorstore/
+indexes/
+chroma/
+faiss_index/
+*.faiss
+*.pkl
+
+# Local experiment outputs
+outputs/
+tmp/
+cache/
