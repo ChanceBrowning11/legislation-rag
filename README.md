@@ -18,7 +18,7 @@ This project aims to answer the following question:
 ### 1. Clone the repository
 ```bash
 git clone <your-repo-url>
-cd mn-legislation-rag
+cd legislation-rag
 ```
 
 Planned setup:
@@ -51,7 +51,7 @@ Evaluate and compare both systems
 
 ## Repo Structure
 ```
-mn-legislation-rag/
+legislation-rag/
 ├── README.md
 ├── .gitignore
 ├── pyproject.toml
@@ -83,7 +83,7 @@ mn-legislation-rag/
 │   ├── run_summary_rag.py
 │   └── evaluate_systems.py
 ├── src/
-│   └── mn_legislation_rag/
+│   └── legislation_rag/
 │       ├── __init__.py
 │       ├── main.py
 │       ├── config.py
