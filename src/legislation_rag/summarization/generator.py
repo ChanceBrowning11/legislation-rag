@@ -1,16 +1,12 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import datetime, timezone
-
 from langchain_openai import ChatOpenAI
-
 from legislation_rag.config import settings
 from legislation_rag.summarization.prompts import (
   SUMMARY_SYSTEM_PROMPT,
   build_bill_summary_user_prompt,
 )
-
 
 @dataclass
 class BillSummaryResult:
