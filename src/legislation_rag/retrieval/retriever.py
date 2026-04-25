@@ -47,13 +47,13 @@ class BillRetriever:
     Retrieve top-k records for a user query.
 
     Args:
-        query: User query text.
-        collection_name: Collection to search.
-        k: Number of results to return.
-        where: Optional metadata filter.
+      query: User query text.
+      collection_name: Collection to search.
+      k: Number of results to return.
+      where: Optional metadata filter.
 
     Returns:
-        List of normalized retrieval results.
+      List of normalized retrieval results.
     """
     query_embedding = self.embedder.embed_query(query)
     raw_results = self.store.query_collection(
