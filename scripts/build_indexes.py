@@ -144,13 +144,17 @@ def main() -> None:
     action="store_true",
     help="Delete and rebuild both collections from scratch.",
   )
+  parser.add_argument(
+    "--baseline-only",
+    action="store_true",
+    help="Build only the baseline bill_chunks collection; skip summaries and augmented collection.",
+  )
 
   args = parser.parse_args()
 
   settings.ensure_directories()
 
   chunk_records = load_chunk_records(args.chunks_dir)
-  summary_records = load_summary_records(args.summaries_dir)
 
   if not chunk_records:
     raise ValueError(
@@ -158,7 +162,6 @@ def main() -> None:
     )
 
   print(f"Loaded {len(chunk_records)} chunk records.")
-  print(f"Loaded {len(summary_records)} summary records.")
 
   embedder = OpenAIEmbedder()
   store = ChromaVectorStore(args.persist_dir)
@@ -167,8 +170,9 @@ def main() -> None:
     print(f"Resetting collection: {args.baseline_collection}")
     store.reset_collection(args.baseline_collection)
 
-    print(f"Resetting collection: {args.augmented_collection}")
-    store.reset_collection(args.augmented_collection)
+    if not args.baseline_only:
+      print(f"Resetting collection: {args.augmented_collection}")
+      store.reset_collection(args.augmented_collection)
 
   print(f"Building baseline collection: {args.baseline_collection}")
   store.upsert_records(
@@ -178,15 +182,19 @@ def main() -> None:
     batch_size=args.batch_size,
   )
 
-  augmented_records = chunk_records + summary_records
+  if not args.baseline_only:
+    summary_records = load_summary_records(args.summaries_dir)
+    print(f"Loaded {len(summary_records)} summary records.")
 
-  print(f"Building augmented collection: {args.augmented_collection}")
-  store.upsert_records(
-    collection_name=args.augmented_collection,
-    records=augmented_records,
-    embedder=embedder,
-    batch_size=args.batch_size,
-  )
+    augmented_records = chunk_records + summary_records
+
+    print(f"Building augmented collection: {args.augmented_collection}")
+    store.upsert_records(
+      collection_name=args.augmented_collection,
+      records=augmented_records,
+      embedder=embedder,
+      batch_size=args.batch_size,
+    )
 
   print("Done.")
 

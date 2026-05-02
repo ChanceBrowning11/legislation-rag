@@ -32,6 +32,10 @@ dev = [
   "ruff>=0.6",
   "black>=24.0",
 ]
+viz = [
+  "umap-learn>=0.5",
+  "plotly>=5.0",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

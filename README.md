@@ -55,6 +55,8 @@ Early result:
 - LangChain
 - ChromaDB
 - PyPDF
+- UMAP
+- Plotly
 - pytest
 
 ---
@@ -88,7 +90,8 @@ legislation-rag/
 │   ├── smoke_test_retrieval.py
 │   ├── run_baseline_rag.py
 │   ├── run_summary_rag.py
-│   └── evaluate_systems.py
+│   ├── evaluate_systems.py
+│   └── visualize_embeddings.py
 ├── src/
 │   └── legislation_rag/
 │       ├── __init__.py
@@ -152,7 +155,7 @@ LOG_LEVEL=INFO
 ```
 
 ### 6. Add source documents
-Place raw bill PDFs in `data /raw/pdfs/`
+Place raw bill PDFs in `data/raw/pdfs/`
 Place metadatafiles in `data/raw/metadata/`
 
 ## End-to-End Pipeline
@@ -216,6 +219,11 @@ Build two Chroma collections:
 python scripts/build_indexes.py --reset
 ```
 
+Optional: build only the baseline `bill_chunks` collection, skipping summary loading and the augmented collection entirely. Useful when summaries haven't been generated yet or aren't needed.
+``` bash
+python scripts/build_indexes.py --reset --baseline-only
+```
+
 ### 6. Run a retrieval smoke test
 Useful for sanity-checking whether retrieval is returning relevant results from a collection
 ``` bash
@@ -253,6 +261,31 @@ Optional, run a subset
 ``` bash
 python scripts/evaluate_systems.py --category corpus_wide --run-label corpus_only
 ```
+
+### 10. Visualize the embedding space
+Projects all document embeddings into 3D UMAP space and outputs an interactive HTML file. Requires the `viz` extras (`pip install -e ".[viz]"`).
+
+Corpus only — explore cluster structure across all chunks:
+``` bash
+python scripts/visualize_embeddings.py
+```
+
+With a query — embeds the question, projects it into the same UMAP space, and highlights the top retrieved chunks:
+``` bash
+python scripts/visualize_embeddings.py \
+  --question "Which bills address housing affordability?" \
+  --output housing_query.html
+```
+
+UMAP is fit on the full corpus first; the query point is projected in via `transform()` so its position is directly comparable to the document clusters.
+
+Key options:
+- `--question` — query to project and retrieve against
+- `--k` — number of retrieved chunks to highlight (default: 5)
+- `--color-by` — metadata field used for point color, e.g. `doc_type` or `bill_id` (default: `doc_type`)
+- `--dims` — `2` or `3` (default: `3`)
+- `--bill-id` — restrict retrieval to a single bill
+- `--output` — output HTML path (default: `embedding_viz.html`)
 
 ## Evaluation Design
 The project currently uses a mixed evaluation set with three kinds of questions:
