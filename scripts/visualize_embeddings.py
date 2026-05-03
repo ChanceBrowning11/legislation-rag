@@ -2,17 +2,41 @@ from __future__ import annotations
 
 import argparse
 import textwrap
+import webbrowser
 from pathlib import Path
 
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import umap
 
 from legislation_rag.config import settings
 from legislation_rag.retrieval.embedder import OpenAIEmbedder
 from legislation_rag.retrieval.retriever import BillRetriever
 from legislation_rag.retrieval.vector_store import ChromaVectorStore
+
+DEFAULT_OUTPUT_PATH = Path("docs/visualizations/embedding_viz.html")
+
+
+class PCAProjector:
+    def __init__(self, n_components: int) -> None:
+        self.n_components = n_components
+        self.mean_: np.ndarray | None = None
+        self.components_: np.ndarray | None = None
+
+    def fit_transform(self, embeddings: np.ndarray) -> np.ndarray:
+        self.mean_ = embeddings.mean(axis=0, keepdims=True)
+        centered = embeddings - self.mean_
+
+        # SVD gives us principal directions without adding a heavy sklearn/numba stack.
+        _, _, vt = np.linalg.svd(centered, full_matrices=False)
+        self.components_ = vt[: self.n_components]
+        return centered @ self.components_.T
+
+    def transform(self, embeddings: np.ndarray) -> np.ndarray:
+        if self.mean_ is None or self.components_ is None:
+            raise RuntimeError("PCAProjector must be fit before calling transform().")
+        centered = embeddings - self.mean_
+        return centered @ self.components_.T
 
 
 def load_corpus(
@@ -57,6 +81,11 @@ def build_traces(
     palette = px.colors.qualitative.Plotly
     unique_labels = sorted(set(labels))
     label_color = {lbl: palette[i % len(palette)] for i, lbl in enumerate(unique_labels)}
+    if color_by == "doc_type":
+        label_color.update({
+            "chunk": palette[0],
+            "summary": palette[1],
+        })
 
     traces = []
 
@@ -156,7 +185,7 @@ def build_traces(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Visualize bill chunk embeddings projected into UMAP space."
+        description="Visualize bill chunk embeddings projected into PCA space."
     )
     parser.add_argument(
         "--question", type=str, default=None,
@@ -164,7 +193,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--collection", type=str, default="bill_chunks",
-        help="Chroma collection to visualize (default: bill_chunks).",
+        help="Chroma collection to visualize (default: bill_chunks, other option: bill_chunks_plus_summaries).",
     )
     parser.add_argument(
         "--k", type=int, default=5,
@@ -176,23 +205,27 @@ def main() -> None:
     )
     parser.add_argument(
         "--dims", type=int, choices=[2, 3], default=3,
-        help="UMAP output dimensions (default: 3).",
-    )
-    parser.add_argument(
-        "--n-neighbors", type=int, default=15,
-        help="UMAP n_neighbors parameter (default: 15).",
-    )
-    parser.add_argument(
-        "--min-dist", type=float, default=0.1,
-        help="UMAP min_dist parameter (default: 0.1).",
+        help="Projection output dimensions (default: 3).",
     )
     parser.add_argument(
         "--bill-id", type=str, default=None,
         help="Restrict retrieval to a specific bill_id (requires --question).",
     )
+    output_group = parser.add_mutually_exclusive_group()
+    output_group.add_argument(
+        "--output", type=str, default=str(DEFAULT_OUTPUT_PATH),
+        help=f"Output HTML file path (default: {DEFAULT_OUTPUT_PATH}).",
+    )
+    output_group.add_argument(
+        "--output-filename", type=str, default=None,
+        help=(
+            "Output HTML file name inside the default output directory "
+            f"({DEFAULT_OUTPUT_PATH.parent})."
+        ),
+    )
     parser.add_argument(
-        "--output", type=str, default="embedding_viz.html",
-        help="Output HTML file path (default: embedding_viz.html).",
+        "--no-open", action="store_true",
+        help="Do not automatically open the generated HTML file.",
     )
     args = parser.parse_args()
 
@@ -204,27 +237,16 @@ def main() -> None:
         print("Collection is empty — nothing to visualize.")
         return
 
-    print(
-        f"Fitting UMAP ({args.dims}D,"
-        f" n_neighbors={args.n_neighbors},"
-        f" min_dist={args.min_dist})..."
-    )
-    reducer = umap.UMAP(
-        n_components=args.dims,
-        n_neighbors=args.n_neighbors,
-        min_dist=args.min_dist,
-        metric="cosine",
-        random_state=42,
-        verbose=False,
-    )
+    print(f"Fitting PCA ({args.dims}D)...")
+    reducer = PCAProjector(n_components=args.dims)
     corpus_coords = reducer.fit_transform(embeddings)
-    print("  UMAP fit complete.")
+    print("  PCA fit complete.")
 
     query_coord: np.ndarray | None = None
     retrieved_indices: set[int] = set()
 
     if args.question:
-        print(f"Embedding query...")
+        print("Embedding query...")
         embedder = OpenAIEmbedder()
         query_vec = np.array([embedder.embed_query(args.question)], dtype=np.float32)
         query_coord = reducer.transform(query_vec)[0]
@@ -277,25 +299,39 @@ def main() -> None:
 
     if args.dims == 3:
         fig.update_layout(
-            title=f"Legislation RAG — Embedding Space (3D UMAP){subtitle}",
-            scene=dict(xaxis_title="UMAP-1", yaxis_title="UMAP-2", zaxis_title="UMAP-3"),
+            title=f"Legislation RAG — Embedding Space (3D PCA){subtitle}",
+            scene=dict(xaxis_title="PC-1", yaxis_title="PC-2", zaxis_title="PC-3"),
             legend_title=args.color_by,
             margin=dict(l=0, r=0, b=0, t=60),
             hoverlabel=hoverlabel,
         )
     else:
         fig.update_layout(
-            title=f"Legislation RAG — Embedding Space (2D UMAP){subtitle}",
-            xaxis_title="UMAP-1",
-            yaxis_title="UMAP-2",
+            title=f"Legislation RAG — Embedding Space (2D PCA){subtitle}",
+            xaxis_title="PC-1",
+            yaxis_title="PC-2",
             legend_title=args.color_by,
             margin=dict(l=40, r=40, b=40, t=80),
             hoverlabel=hoverlabel,
         )
 
     output_path = Path(args.output)
+    if args.output_filename:
+        output_filename = Path(args.output_filename)
+        if output_filename.name != args.output_filename:
+            parser.error("--output-filename must be a file name, not a path.")
+        output_path = DEFAULT_OUTPUT_PATH.with_name(args.output_filename)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.write_html(str(output_path))
     print(f"\nSaved to: {output_path.resolve()}")
+
+    if not args.no_open:
+        opened = webbrowser.open(output_path.resolve().as_uri())
+        if opened:
+            print("Opened visualization in your default browser.")
+        else:
+            print("Could not auto-open the browser; open the saved HTML file manually.")
 
 
 if __name__ == "__main__":

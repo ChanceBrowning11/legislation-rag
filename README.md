@@ -55,7 +55,7 @@ Early result:
 - LangChain
 - ChromaDB
 - PyPDF
-- UMAP
+- PCA
 - Plotly
 - pytest
 
@@ -262,22 +262,22 @@ Optional, run a subset
 python scripts/evaluate_systems.py --category corpus_wide --run-label corpus_only
 ```
 
-### 10. Visualize the embedding space
-Projects all document embeddings into 3D UMAP space and outputs an interactive HTML file. Requires the `viz` extras (`pip install -e ".[viz]"`).
+## Visualize the embedding space
+Projects all document embeddings into 3D PCA space and outputs an interactive HTML file. Requires the `viz` extras (`pip install -e ".[viz]"`).
 
 Corpus only — explore cluster structure across all chunks:
 ``` bash
 python scripts/visualize_embeddings.py
 ```
 
-With a query — embeds the question, projects it into the same UMAP space, and highlights the top retrieved chunks:
+With a query — embeds the question, projects it into the same PCA space, highlights the top retrieved chunks, and opens the generated HTML in your default browser:
 ``` bash
-python scripts/visualize_embeddings.py \
-  --question "Which bills address housing affordability?" \
-  --output housing_query.html
+python scripts/visualize_embeddings.py
+  --question "Which bills address housing affordability?"
+  --output-filename housing_query.html
 ```
 
-UMAP is fit on the full corpus first; the query point is projected in via `transform()` so its position is directly comparable to the document clusters.
+PCA is fit on the full corpus first; the query point is projected with the same learned components so its position is directly comparable to the document clusters.
 
 Key options:
 - `--question` — query to project and retrieve against
@@ -285,7 +285,9 @@ Key options:
 - `--color-by` — metadata field used for point color, e.g. `doc_type` or `bill_id` (default: `doc_type`)
 - `--dims` — `2` or `3` (default: `3`)
 - `--bill-id` — restrict retrieval to a single bill
-- `--output` — output HTML path (default: `embedding_viz.html`)
+- `--output` — output HTML path (default: `docs/visualizations/embedding_viz.html`)
+- `--output-filename` — output HTML file name within `docs/visualizations/`
+- `--no-open` — save the HTML without opening it in the browser
 
 ## Evaluation Design
 The project currently uses a mixed evaluation set with three kinds of questions:

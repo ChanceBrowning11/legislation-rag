@@ -33,7 +33,6 @@ dev = [
   "black>=24.0",
 ]
 viz = [
-  "umap-learn>=0.5",
   "plotly>=5.0",
 ]
 
