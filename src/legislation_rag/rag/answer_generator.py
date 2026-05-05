@@ -67,13 +67,13 @@ def format_retrieved_context(documents: Iterable[RetrievedDocument]) -> str:
     source_file = document.metadata.get("source_file", "unknown")
 
     block = f"""[Context {index}]
-document_id: {document.document_id}
-doc_type: {doc_type}
-bill_id: {bill_id}
-source_file: {source_file}
-text:
-{document.text}
-"""
+    document_id: {document.document_id}
+    doc_type: {doc_type}
+    bill_id: {bill_id}
+    source_file: {source_file}
+    text:
+    {document.text}
+    """
     context_blocks.append(block)
 
   return "\n\n".join(context_blocks)

@@ -60,3 +60,6 @@ faiss_index/
 outputs/
 tmp/
 cache/
+
+# visualization documents
+docs/visualizations/
